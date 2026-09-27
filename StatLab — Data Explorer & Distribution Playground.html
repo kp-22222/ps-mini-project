@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StatLab — Data Explorer & Distribution Playground</title>
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --sub:#65645f;
+  --accent:#3a5a9c; --accent2:#c96a3c; --line:#e4e2dc; --grid:#eceae3;
+  --good:#3c8a5a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17181a; --panel:#212327; --ink:#eceae3; --sub:#a3a196;
+    --accent:#7fa2e8; --accent2:#e8935f; --line:#33353a; --grid:#2a2c30;
+    --good:#5fc283;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17181a; --panel:#212327; --ink:#eceae3; --sub:#a3a196;
+  --accent:#7fa2e8; --accent2:#e8935f; --line:#33353a; --grid:#2a2c30;
+  --good:#5fc283;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Georgia',serif; min-height:100%;
+}
+header{
+  padding:22px 20px 14px; border-bottom:1px solid var(--line);
+  position:sticky; top:0; top:env(safe-area-inset-top,0px);
+  background:var(--bg); z-index:5;
+}
+h1{margin:0 0 4px; font-size:1.5rem; letter-spacing:.2px;}
+.sub{color:var(--sub); font-size:.85rem; font-family:Arial,sans-serif;}
+nav{display:flex; gap:8px; margin:14px 0 0; flex-wrap:wrap;}
+nav button{
+  font-family:Arial,sans-serif; border:1px solid var(--line); background:var(--panel);
+  color:var(--ink); padding:8px 16px; border-radius:20px; cursor:pointer; font-size:.85rem;
+}
+nav button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+main{max-width:920px; margin:0 auto; padding:20px 20px 60px;}
+section{display:none;}
+section.active{display:block;}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:18px 20px; margin-bottom:18px;
+}
+.card h2{margin:0 0 6px; font-size:1.1rem;}
+.card p.desc{color:var(--sub); font-family:Arial,sans-serif; font-size:.82rem; margin:0 0 12px;}
+label{font-family:Arial,sans-serif; font-size:.8rem; color:var(--sub); display:block; margin:10px 0 4px;}
+input[type=file]{font-family:Arial,sans-serif; font-size:.85rem;}
+select, input[type=range]{width:100%;}
+select{
+  font-family:Arial,sans-serif; padding:6px 8px; border-radius:6px; border:1px solid var(--line);
+  background:var(--bg); color:var(--ink);
+}
+.row{display:flex; gap:14px; flex-wrap:wrap;}
+.row > div{flex:1; min-width:180px;}
+table{width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:.8rem; margin-top:6px;}
+th,td{border:1px solid var(--line); padding:5px 8px; text-align:left;}
+th{background:var(--grid);}
+.scrollx{overflow-x:auto;}
+.statgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; margin-top:10px;}
+.stat{background:var(--grid); border-radius:8px; padding:8px 10px; font-family:Arial,sans-serif;}
+.stat .k{font-size:.68rem; color:var(--sub); text-transform:uppercase; letter-spacing:.4px;}
+.stat .v{font-size:1.02rem; font-weight:600;}
+.chartbtns{display:flex; gap:6px; margin:10px 0; flex-wrap:wrap;}
+.chartbtns button{
+  font-family:Arial,sans-serif; font-size:.78rem; padding:6px 12px; border-radius:16px;
+  border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer;
+}
+.chartbtns button.active{background:var(--accent2); color:#fff; border-color:var(--accent2);}
+svg{width:100%; height:auto; display:block;}
+.sliderline{display:flex; justify-content:space-between; font-family:Arial,sans-serif; font-size:.78rem; color:var(--sub);}
+.distbtns{display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;}
+.distbtns button{
+  font-family:Arial,sans-serif; font-size:.82rem; padding:7px 14px; border-radius:16px;
+  border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer;
+}
+.distbtns button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+.legend{display:flex; gap:16px; font-family:Arial,sans-serif; font-size:.78rem; margin-top:6px; color:var(--sub);}
+.legend span{display:inline-flex; align-items:center; gap:5px;}
+.dot{width:10px; height:10px; border-radius:2px; display:inline-block;}
+.note{font-family:Arial,sans-serif; font-size:.78rem; color:var(--sub); margin-top:8px;}
+button.act{
+  font-family:Arial,sans-serif; background:var(--accent); color:#fff; border:none;
+  padding:9px 18px; border-radius:8px; cursor:pointer; font-size:.85rem;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 StatLab</h1>
+  <div class="sub">Data Explorer + Distribution Playground — covers Python/Pandas basics, CSV import & metadata, descriptive statistics, visualization, and probability distributions</div>
+  <nav>
+    <button data-tab="explorer" class="active">Data Explorer</button>
+    <button data-tab="playground">Distribution Playground</button>
+  </nav>
+</header>
+<main>
+
+<section id="explorer" class="active">
+  <div class="card">
+    <h2>1 · Import & Metadata</h2>
+    <p class="desc">Upload a CSV. We'll read it, detect column types, and show shape/metadata — like <code>pandas.read_csv()</code> + <code>df.info()</code>.</p>
+    <input type="file" id="fileInput" accept=".csv">
+    <div id="metaOut" class="statgrid"></div>
+    <div class="scrollx"><table id="previewTable"></table></div>
+  </div>
+
+  <div class="card" id="statsCard" style="display:none;">
+    <h2>2 · Descriptive Statistics</h2>
+    <p class="desc">Central tendency, dispersion, position and shape for a chosen numeric column.</p>
+    <label>Numeric column</label>
+    <select id="colSelect"></select>
+    <div id="statOut" class="statgrid"></div>
+  </div>
+
+  <div class="card" id="vizCard" style="display:none;">
+    <h2>3 · Visualization</h2>
+    <p class="desc">Histogram, scatter, box plot and bar chart — same four techniques as Experiment 4.</p>
+    <div class="chartbtns">
+      <button data-chart="hist" class="active">Histogram</button>
+      <button data-chart="box">Box Plot</button>
+      <button data-chart="bar">Bar Chart</button>
+      <button data-chart="scatter">Scatter</button>
+    </div>
+    <div class="row" id="scatterPicker" style="display:none;">
+      <div><label>X column</label><select id="xCol"></select></div>
+      <div><label>Y column</label><select id="yCol"></select></div>
+    </div>
+    <svg id="vizSvg" viewBox="0 0 700 360"></svg>
+  </div>
+</section>
+
+<section id="playground">
+  <div class="card">
+    <h2>Probability Distribution Playground</h2>
+    <p class="desc">Pick a distribution, move the sliders, and watch the theoretical curve update. "Draw samples" overlays a random sample so you can compare empirical vs theoretical mean/variance — exactly what Experiments 5 & 6 ask you to interpret.</p>
+    <div class="distbtns">
+      <button data-dist="normal" class="active">Normal</button>
+      <button data-dist="poisson">Poisson</button>
+      <button data-dist="exponential">Exponential</button>
+      <button data-dist="bernoulli">Bernoulli</button>
+    </div>
+    <div id="sliderArea"></div>
+    <svg id="distSvg" viewBox="0 0 700 340" style="margin-top:10px;"></svg>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--accent)"></span>Theoretical</span>
+      <span><span class="dot" style="background:var(--accent2)"></span>Sample</span>
+    </div>
+    <div style="margin-top:12px;">
+      <label>Sample size</label>
+      <input type="range" id="nSamples" min="20" max="5000" step="20" value="500">
+      <div class="sliderline"><span id="nSamplesLbl">500 samples</span><span></span></div>
+      <button class="act" id="drawBtn" style="margin-top:8px;">🎲 Draw samples</button>
+    </div>
+    <div id="distStats" class="statgrid" style="margin-top:14px;"></div>
+    <div class="note" id="distFormula"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ---------- helpers: math / stats ---------- */
+function mean(a){return a.reduce((s,x)=>s+x,0)/a.length;}
+function variance(a){const m=mean(a); return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1||1);}
+function std(a){return Math.sqrt(variance(a));}
+function median(a){const s=[...a].sort((x,y)=>x-y); const n=s.length; return n%2? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2;}
+function mode(a){const c={}; a.forEach(x=>c[x]=(c[x]||0)+1); let best=a[0],bc=0; for(const k in c){if(c[k]>bc){bc=c[k];best=+k;}} return best;}
+function quantile(a,q){const s=[...a].sort((x,y)=>x-y); const pos=(s.length-1)*q; const b=Math.floor(pos), r=pos-b; return s[b+1]!==undefined? s[b]+r*(s[b+1]-s[b]) : s[b];}
+function skewness(a){const m=mean(a), sd=std(a), n=a.length; return (n/((n-1)*(n-2)||1))*a.reduce((s,x)=>s+((x-m)/sd)**3,0);}
+function factorial(n){let r=1; for(let i=2;i<=n;i++) r*=i; return r;}
+
+/* ---------- CSV parsing ---------- */
+let dataset=null; // {columns:[...], rows:[{...}], numeric:[...]}
+document.getElementById('fileInput').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ parseCSV(ev.target.result); };
+  reader.readAsText(f);
+});
+
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim().length);
+  const cols=lines[0].split(',').map(c=>c.trim());
+  const rows=lines.slice(1).map(l=>{
+    const vals=l.split(',');
+    const obj={};
+    cols.forEach((c,i)=>obj[c]=(vals[i]!==undefined? vals[i].trim() : ''));
+    return obj;
+  });
+  const numeric=cols.filter(c=>rows.every(r=>r[c]==='' || !isNaN(parseFloat(r[c]))) && rows.some(r=>r[c]!==''));
+  dataset={columns:cols, rows, numeric};
+  renderMeta(); renderPreview(); populateColumnSelectors();
+  document.getElementById('statsCard').style.display='block';
+  document.getElementById('vizCard').style.display='block';
+  drawStats(); drawViz();
+}
+
+function renderMeta(){
+  const nulls = dataset.columns.map(c=>dataset.rows.filter(r=>r[c]==='').length).reduce((a,b)=>a+b,0);
+  const el=document.getElementById('metaOut');
+  el.innerHTML='';
+  const stats=[
+    ['Rows', dataset.rows.length],
+    ['Columns', dataset.columns.length],
+    ['Numeric cols', dataset.numeric.length],
+    ['Missing cells', nulls]
+  ];
+  stats.forEach(([k,v])=>{el.innerHTML += `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;});
+}
+
+function renderPreview(){
+  const t=document.getElementById('previewTable');
+  const head='<tr>'+dataset.columns.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  const body=dataset.rows.slice(0,8).map(r=>'<tr>'+dataset.columns.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>').join('');
+  t.innerHTML=head+body;
+}
+
+function populateColumnSelectors(){
+  const opts=dataset.numeric.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('colSelect').innerHTML=opts;
+  document.getElementById('xCol').innerHTML=opts;
+  document.getElementById('yCol').innerHTML=dataset.numeric.map((c,i)=>`<option value="${c}" ${i===1?'selected':''}>${c}</option>`).join('');
+  document.getElementById('colSelect').onchange=()=>{drawStats(); if(currentChart!=='scatter') drawViz();};
+  document.getElementById('xCol').onchange=drawViz;
+  document.getElementById('yCol').onchange=drawViz;
+}
+
+function currentCol(){return document.getElementById('colSelect').value;}
+function colVals(c){return dataset.rows.map(r=>parseFloat(r[c])).filter(v=>!isNaN(v));}
+
+function drawStats(){
+  if(!dataset || !dataset.numeric.length) return;
+  const c=currentCol(); const v=colVals(c);
+  const el=document.getElementById('statOut'); el.innerHTML='';
+  const rows=[
+    ['Mean', mean(v).toFixed(3)], ['Median', median(v).toFixed(3)], ['Mode', mode(v)],
+    ['Std Dev', std(v).toFixed(3)], ['Variance', variance(v).toFixed(3)],
+    ['Min', Math.min(...v)], ['Max', Math.max(...v)], ['Range', (Math.max(...v)-Math.min(...v)).toFixed(3)],
+    ['Q1', quantile(v,.25).toFixed(3)], ['Q3', quantile(v,.75).toFixed(3)],
+    ['IQR', (quantile(v,.75)-quantile(v,.25)).toFixed(3)], ['Skewness', skewness(v).toFixed(3)]
+  ];
+  rows.forEach(([k,val])=>{el.innerHTML += `<div class="stat"><div class="k">${k}</div><div class="v">${val}</div></div>`;});
+}
+
+/* ---------- visualization (explorer) ---------- */
+let currentChart='hist';
+document.querySelectorAll('#vizCard .chartbtns button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#vizCard .chartbtns button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); currentChart=b.dataset.chart;
+    document.getElementById('scatterPicker').style.display = currentChart==='scatter'? 'flex':'none';
+    drawViz();
+  };
+});
+const SVGNS='http://www.w3.org/2000/svg';
+function clearSvg(svg){while(svg.firstChild) svg.removeChild(svg.firstChild);}
+function el(tag,attrs){const e=document.createElementNS(SVGNS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e;}
+
+function drawViz(){
+  if(!dataset) return;
+  const svg=document.getElementById('vizSvg'); clearSvg(svg);
+  const W=700,H=360,pad=44;
+  const ink=getComputedStyle(document.body).getPropertyValue('--ink');
+  const grid=getComputedStyle(document.body).getPropertyValue('--grid');
+  const accent=getComputedStyle(document.body).getPropertyValue('--accent');
+  const accent2=getComputedStyle(document.body).getPropertyValue('--accent2');
+
+  if(currentChart==='hist'){
+    const v=colVals(currentCol());
+    const bins=10, mn=Math.min(...v), mx=Math.max(...v), w=(mx-mn)/bins||1;
+    const counts=new Array(bins).fill(0);
+    v.forEach(x=>{let idx=Math.min(bins-1,Math.floor((x-mn)/w)); counts[idx]++;});
+    const maxC=Math.max(...counts);
+    const bw=(W-2*pad)/bins;
+    counts.forEach((c,i)=>{
+      const h=(c/maxC)*(H-2*pad);
+      svg.appendChild(el('rect',{x:pad+i*bw+2, y:H-pad-h, width:bw-4, height:h, fill:accent}));
+    });
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    svg.appendChild(el('text',{x:W/2,y:H-10,fill:ink,'font-size':11,'text-anchor':'middle'})).textContent=currentCol()+' (histogram, 10 bins)';
+  }
+  else if(currentChart==='bar'){
+    const v=colVals(currentCol());
+    const rounded=v.map(x=>Math.round(x));
+    const counts={}; rounded.forEach(x=>counts[x]=(counts[x]||0)+1);
+    const keys=Object.keys(counts).sort((a,b)=>a-b).slice(0,15);
+    const maxC=Math.max(...keys.map(k=>counts[k]));
+    const bw=(W-2*pad)/keys.length;
+    keys.forEach((k,i)=>{
+      const h=(counts[k]/maxC)*(H-2*pad);
+      svg.appendChild(el('rect',{x:pad+i*bw+3, y:H-pad-h, width:bw-6, height:h, fill:accent2}));
+      svg.appendChild(el('text',{x:pad+i*bw+bw/2,y:H-pad+14,fill:ink,'font-size':9,'text-anchor':'middle'})).textContent=k;
+    });
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+  }
+  else if(currentChart==='box'){
+    const v=colVals(currentCol());
+    const q1=quantile(v,.25), q2=median(v), q3=quantile(v,.75), mn=Math.min(...v), mx=Math.max(...v);
+    const scale=x=>H-pad-((x-mn)/(mx-mn||1))*(H-2*pad);
+    const cx=W/2, bw=140;
+    svg.appendChild(el('line',{x1:cx,y1:scale(mn),x2:cx,y2:scale(q1),stroke:ink,'stroke-width':1.5}));
+    svg.appendChild(el('line',{x1:cx,y1:scale(q3),x2:cx,y2:scale(mx),stroke:ink,'stroke-width':1.5}));
+    svg.appendChild(el('rect',{x:cx-bw/2,y:scale(q3),width:bw,height:scale(q1)-scale(q3),fill:accent,opacity:.75,stroke:ink}));
+    svg.appendChild(el('line',{x1:cx-bw/2,y1:scale(q2),x2:cx+bw/2,y2:scale(q2),stroke:accent2,'stroke-width':2.5}));
+    [mn,q1,q2,q3,mx].forEach(val=>{
+      svg.appendChild(el('text',{x:cx+bw/2+8,y:scale(val)+4,fill:ink,'font-size':10}).textContent=val.toFixed(2));
+    });
+  }
+  else if(currentChart==='scatter'){
+    const xc=document.getElementById('xCol').value, yc=document.getElementById('yCol').value;
+    const xv=colVals(xc), yv=colVals(yc);
+    const n=Math.min(xv.length,yv.length);
+    const xmn=Math.min(...xv),xmx=Math.max(...xv),ymn=Math.min(...yv),ymx=Math.max(...yv);
+    const sx=x=>pad+((x-xmn)/(xmx-xmn||1))*(W-2*pad);
+    const sy=y=>H-pad-((y-ymn)/(ymx-ymn||1))*(H-2*pad);
+    for(let i=0;i<n;i++){ svg.appendChild(el('circle',{cx:sx(xv[i]),cy:sy(yv[i]),r:3.5,fill:accent,opacity:.75})); }
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    svg.appendChild(el('line',{x1:pad,y1:pad,x2:pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    svg.appendChild(el('text',{x:W/2,y:H-10,fill:ink,'font-size':11,'text-anchor':'middle'})).textContent=xc+' vs '+yc;
+  }
+}
+
+/* ---------- distribution playground ---------- */
+let dist='normal';
+const params={
+  normal:{mu:0, sigma:1},
+  poisson:{lambda:4},
+  exponential:{lambda:1},
+  bernoulli:{p:0.5}
+};
+const sliderDefs={
+  normal:[['mu','μ (mean)',-10,10,0.1],['sigma','σ (std dev)',0.2,5,0.1]],
+  poisson:[['lambda','λ (rate)',0.2,20,0.2]],
+  exponential:[['lambda','λ (rate)',0.1,5,0.1]],
+  bernoulli:[['p','p (success prob)',0,1,0.01]]
+};
+let lastSamples=null;
+
+document.querySelectorAll('.distbtns button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.distbtns button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); dist=b.dataset.dist; lastSamples=null;
+    buildSliders(); drawDist();
+  };
+});
+document.getElementById('nSamples').oninput=e=>{document.getElementById('nSamplesLbl').textContent=e.target.value+' samples';};
+document.getElementById('drawBtn').onclick=()=>{ lastSamples=generateSamples(dist, +document.getElementById('nSamples').value); drawDist(); };
+
+function buildSliders(){
+  const area=document.getElementById('sliderArea'); area.innerHTML='';
+  sliderDefs[dist].forEach(([key,label,min,max,step])=>{
+    const val=params[dist][key];
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`<label>${label}</label>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${val}" data-key="${key}">
+      <div class="sliderline"><span>${min}</span><span id="val_${key}">${val}</span><span>${max}</span></div>`;
+    area.appendChild(wrap);
+    wrap.querySelector('input').oninput=e=>{
+      params[dist][key]=+e.target.value;
+      document.getElementById('val_'+key).textContent=e.target.value;
+      lastSamples=null; drawDist();
+    };
+  });
+}
+
+function normalPdf(x,mu,sigma){return (1/(sigma*Math.sqrt(2*Math.PI)))*Math.exp(-((x-mu)**2)/(2*sigma**2));}
+function poissonPmf(r,lambda){ // recurrence relation P(r)=lambda/r * P(r-1), P(0)=e^-lambda
+  let p=Math.exp(-lambda);
+  for(let i=1;i<=r;i++) p = (lambda/i)*p;
+  return p;
+}
+function expPdf(x,lambda){return x<0? 0 : lambda*Math.exp(-lambda*x);}
+function bernoulliPmf(x,p){return x===1? p : 1-p;}
+
+function generateSamples(dist,n){
+  const out=[];
+  if(dist==='normal'){
+    const {mu,sigma}=params.normal;
+    for(let i=0;i<n;i++){ // Box-Muller
+      const u1=Math.random(),u2=Math.random();
+      const z=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+      out.push(mu+sigma*z);
+    }
+  } else if(dist==='poisson'){
+    const {lambda}=params.poisson;
+    for(let i=0;i<n;i++){ // Knuth
+      let L=Math.exp(-lambda), k=0, p=1;
+      do{ k++; p*=Math.random(); }while(p>L);
+      out.push(k-1);
+    }
+  } else if(dist==='exponential'){
+    const {lambda}=params.exponential;
+    for(let i=0;i<n;i++){ out.push(-Math.log(1-Math.random())/lambda); }
+  } else if(dist==='bernoulli'){
+    const {p}=params.bernoulli;
+    for(let i=0;i<n;i++){ out.push(Math.random()<p? 1:0); }
+  }
+  return out;
+}
+
+function drawDist(){
+  const svg=document.getElementById('distSvg'); clearSvg(svg);
+  const W=700,H=340,pad=44;
+  const ink=getComputedStyle(document.body).getPropertyValue('--ink');
+  const accent=getComputedStyle(document.body).getPropertyValue('--accent');
+  const accent2=getComputedStyle(document.body).getPropertyValue('--accent2');
+  const statsEl=document.getElementById('distStats'); statsEl.innerHTML='';
+  const formulaEl=document.getElementById('distFormula');
+
+  if(dist==='normal'){
+    const {mu,sigma}=params.normal;
+    formulaEl.textContent='f(x, μ, σ) = 1/(σ√2π) · e^(-(x-μ)²/2σ²)';
+    const xmin=mu-4*sigma, xmax=mu+4*sigma;
+    const pts=[]; const N=120;
+    let ymax=0;
+    for(let i=0;i<=N;i++){const x=xmin+(xmax-xmin)*i/N; const y=normalPdf(x,mu,sigma); ymax=Math.max(ymax,y); pts.push([x,y]);}
+    const sx=x=>pad+((x-xmin)/(xmax-xmin))*(W-2*pad);
+    const sy=y=>H-pad-(y/ymax)*(H-2*pad);
+    if(lastSamples){
+      const bins=24, w=(xmax-xmin)/bins; const counts=new Array(bins).fill(0);
+      lastSamples.forEach(x=>{let idx=Math.floor((x-xmin)/w); if(idx>=0&&idx<bins) counts[idx]++;});
+      const maxDensity=Math.max(...counts.map(c=>c/(lastSamples.length*w)));
+      const scale=Math.max(maxDensity,ymax);
+      counts.forEach((c,i)=>{
+        const density=c/(lastSamples.length*w);
+        const h=(density/scale)*(H-2*pad);
+        svg.appendChild(el('rect',{x:sx(xmin+i*w), y:H-pad-h, width:(W-2*pad)/bins-1, height:h, fill:accent2, opacity:.55}));
+      });
+    }
+    const path=pts.map((p,i)=>(i===0?'M':'L')+sx(p[0]).toFixed(1)+','+sy(p[1]).toFixed(1)).join(' ');
+    svg.appendChild(el('path',{d:path, fill:'none', stroke:accent, 'stroke-width':2.5}));
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    addStat(statsEl,'Theoretical mean',mu.toFixed(3));
+    addStat(statsEl,'Theoretical variance',(sigma**2).toFixed(3));
+    if(lastSamples){ addStat(statsEl,'Sample mean',mean(lastSamples).toFixed(3)); addStat(statsEl,'Sample variance',variance(lastSamples).toFixed(3)); }
+  }
+  else if(dist==='poisson'){
+    const {lambda}=params.poisson;
+    formulaEl.textContent='P(X=r) = e^(-λ)·λʳ / r!   (recurrence: P(r) = (λ/r)·P(r-1))';
+    const rmax=Math.min(30,Math.ceil(lambda+4*Math.sqrt(lambda))+5);
+    const pmf=[]; for(let r=0;r<=rmax;r++) pmf.push(poissonPmf(r,lambda));
+    const ymax=Math.max(...pmf);
+    const bw=(W-2*pad)/(rmax+1);
+    let sampCounts=null;
+    if(lastSamples){ sampCounts=new Array(rmax+1).fill(0); lastSamples.forEach(k=>{if(k<=rmax) sampCounts[k]++;}); }
+    for(let r=0;r<=rmax;r++){
+      const h=(pmf[r]/ymax)*(H-2*pad);
+      svg.appendChild(el('rect',{x:pad+r*bw+bw*0.15,y:H-pad-h,width:bw*0.3,height:h,fill:accent}));
+      if(sampCounts){
+        const sh=((sampCounts[r]/lastSamples.length)/ymax)*(H-2*pad);
+        svg.appendChild(el('rect',{x:pad+r*bw+bw*0.5,y:H-pad-sh,width:bw*0.3,height:sh,fill:accent2,opacity:.8}));
+      }
+    }
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    addStat(statsEl,'Theoretical mean (λ)',lambda.toFixed(3));
+    addStat(statsEl,'Theoretical variance (λ)',lambda.toFixed(3));
+    if(lastSamples){ addStat(statsEl,'Sample mean',mean(lastSamples).toFixed(3)); addStat(statsEl,'Sample variance',variance(lastSamples).toFixed(3)); }
+  }
+  else if(dist==='exponential'){
+    const {lambda}=params.exponential;
+    formulaEl.textContent='f(x) = λ·e^(-λx),  x ≥ 0';
+    const xmax=6/lambda;
+    const pts=[]; const N=120; let ymax=0;
+    for(let i=0;i<=N;i++){const x=xmax*i/N; const y=expPdf(x,lambda); ymax=Math.max(ymax,y); pts.push([x,y]);}
+    const sx=x=>pad+(x/xmax)*(W-2*pad);
+    const sy=y=>H-pad-(y/ymax)*(H-2*pad);
+    if(lastSamples){
+      const bins=24, w=xmax/bins; const counts=new Array(bins).fill(0);
+      lastSamples.forEach(x=>{let idx=Math.floor(x/w); if(idx>=0&&idx<bins) counts[idx]++;});
+      const scale=Math.max(ymax,Math.max(...counts.map(c=>c/(lastSamples.length*w))));
+      counts.forEach((c,i)=>{
+        const density=c/(lastSamples.length*w);
+        const h=(density/scale)*(H-2*pad);
+        svg.appendChild(el('rect',{x:sx(i*w), y:H-pad-h, width:(W-2*pad)/bins-1, height:h, fill:accent2, opacity:.55}));
+      });
+    }
+    const path=pts.map((p,i)=>(i===0?'M':'L')+sx(p[0]).toFixed(1)+','+sy(p[1]).toFixed(1)).join(' ');
+    svg.appendChild(el('path',{d:path, fill:'none', stroke:accent, 'stroke-width':2.5}));
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    addStat(statsEl,'Theoretical mean (1/λ)',(1/lambda).toFixed(3));
+    addStat(statsEl,'Theoretical variance (1/λ²)',(1/lambda**2).toFixed(3));
+    if(lastSamples){ addStat(statsEl,'Sample mean',mean(lastSamples).toFixed(3)); addStat(statsEl,'Sample variance',variance(lastSamples).toFixed(3)); }
+  }
+  else if(dist==='bernoulli'){
+    const {p}=params.bernoulli;
+    formulaEl.textContent='P(X=x) = pˣ(1-p)^(1-x),  x ∈ {0,1}';
+    const pmf=[1-p,p]; const ymax=Math.max(...pmf,0.001);
+    const bw=(W-2*pad)/2;
+    let sampCounts=null;
+    if(lastSamples){ sampCounts=[0,0]; lastSamples.forEach(x=>sampCounts[x]++); }
+    [0,1].forEach(x=>{
+      const h=(pmf[x]/ymax)*(H-2*pad);
+      svg.appendChild(el('rect',{x:pad+x*bw+bw*0.2,y:H-pad-h,width:bw*0.25,height:h,fill:accent}));
+      svg.appendChild(el('text',{x:pad+x*bw+bw*0.32,y:H-pad+18,fill:ink,'font-size':11,'text-anchor':'middle'})).textContent='x='+x;
+      if(sampCounts){
+        const sh=((sampCounts[x]/lastSamples.length)/ymax)*(H-2*pad);
+        svg.appendChild(el('rect',{x:pad+x*bw+bw*0.55,y:H-pad-sh,width:bw*0.25,height:sh,fill:accent2,opacity:.8}));
+      }
+    });
+    svg.appendChild(el('line',{x1:pad,y1:H-pad,x2:W-pad,y2:H-pad,stroke:ink,'stroke-width':1}));
+    addStat(statsEl,'Theoretical mean (p)',p.toFixed(3));
+    addStat(statsEl,'Theoretical variance p(1-p)',(p*(1-p)).toFixed(3));
+    if(lastSamples){ addStat(statsEl,'Sample mean',mean(lastSamples).toFixed(3)); addStat(statsEl,'Sample variance',variance(lastSamples).toFixed(3)); }
+  }
+}
+function addStat(container,k,v){container.innerHTML += `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('header nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('header nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(b.dataset.tab).classList.add('active');
+  };
+});
+
+/* init */
+buildSliders(); drawDist();
+</script>
+</body>
+</html>
